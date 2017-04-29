@@ -300,16 +300,9 @@ class Job_Search_SV(object):
 
 
 
-# This block provides a detailed comparison of VFI and CVI.
-# Do not run this block with other ones at the same time.
-# There are overlapping variable names. 
-
-#thet_list = [200, 200, 200, 300, 300, 300]
-#w_list = [200, 300, 400, 200, 300, 400]
-
-
-thet_list = [400, 400, 400]
-w_list = [200, 300, 400]
+# the setup of the grid sizes in table 1.
+thet_list = [200, 200, 200, 300, 300, 300, 400, 400, 400]
+w_list = [200, 300, 400, 200, 300, 400, 200, 300, 400]
 
 
 # ================= Computation Time: CVI =================== #
@@ -323,7 +316,7 @@ for i, theta_size in enumerate(thet_list):
 	start_cvi = time.time() # start the clock
 
 	# compute the fixed point (continuation value)
-	jssv = Job_Search_SV(thet_size=theta_size, sig=1)
+	jssv = Job_Search_SV(thet_size=theta_size, rho=.75, sig=1.)
 	N = len(jssv.grid_points)
 	psi_0 = np.ones(N) # initial guess of the solution
 	psi_star = jssv.compute_fixed_point(jssv.cvals_operator, 
@@ -346,7 +339,7 @@ for i in range(loops):
 	start_vfi = time.time() # start the clock
 
 	jssv_vfi = Job_Search_SV(thet_size=thet_list[i], 
-		                     w_size=w_list[i], sig=1)
+		                     w_size=w_list[i], rho=.75, sig=1.)
 	# compute the fixed point (value function)
 	N = len(jssv_vfi.grid_points_vfi)
 	v0 = np.ones(N)
@@ -357,7 +350,7 @@ for i in range(loops):
 
 
 
-# ========== Computation Time : CVI v.s. VFI ============ #
+# ============= Computation Time : CVI v.s. VFI =============== #
 
 print ("")
 print ("----------------------------------------------")
@@ -371,111 +364,5 @@ print ("Computation time: ")
 print ("")
 print ("CVI : ", time_cvi)
 print ("VFI : ", time_vfi)
-#print ("CVI : ", time_cvi.astype(int))
-#print ("VFI : ", time_vfi.astype(int))
 print ("")
 print ("----------------------------------------------")
-
-
-
-
-
-
-"""
-# A simple version of the numerical comparison: VFI vs CVI.
-
-# ================= Computation Time: CVI =================== #
-
-print ("")
-print ("CVI in progress")
-
-start_cvi = time.time()
-
-jssv = Job_Search_SV()
-
-# compute the fixed point (continuation value)
-N = len(jssv.grid_points)
-psi_0 = np.ones(N) # initial guess of the solution
-psi_star = jssv.compute_fixed_point(jssv.cvals_operator, psi_0)
-
-end_cvi = time.time()
-time_cvi = end_cvi - start_cvi
-
-
-
-# ================= Computation Time: VFI =================== # 
-
-print ("")
-print ("VFI in progress")
-
-start_vfi = time.time()
-
-jssv_vfi = Job_Search_SV()
-
-# compute the fixed point (value function)
-N = len(jssv_vfi.grid_points_vfi)
-v0 = np.ones(N) # initial guess of the solution
-v_star = jssv_vfi.compute_fixed_point(jssv_vfi.Bellman_operator,v0)
-
-end_vfi = time.time()
-time_vfi = end_vfi - start_vfi
-
-
-
-# ========== Computation Time : CVI v.s. VFI ============ #
-
-print ("")
-print ("----------------------------------------------")
-print ("")
-print ("Computation time: ")
-print ("")
-print ("CVI : ", format(time_cvi, '.5g'), "seconds")
-print ("VFI : ", 
-	      int(time_vfi / 3600.), "hours", 
-	      format((time_vfi/3600.- int(time_vfi/3600.))* 60, 
-	      	     '.5g'), "minutes")
-print ("")
-print ("----------------------------------------------")
-
-"""
-
-
-"""
-
-
-# ==================== Plot via CVI ====================== #
-
-res_wage = jssv.res_rule(psi_star) # the reservation wage
-
-# plot the reservation wage
-fig, ax = plt.subplots(figsize=(9,7))
-ax.plot(jssv.grid_points, res_wage, linewidth=2, color='b')
-
-# ax.set_xlim(0, 10)
-# ax.set_ylim(0, 6)
-
-ax.set_xlabel('$theta$', fontsize=15)
-ax.set_ylabel('wage', fontsize=14)
-
-plt.show()
-
-
-
-# ==================== Plot via VFI ====================== #
-
-cvf = jssv_vfi.compute_cvf(v_star)
-res_wage_vfi = jssv_vfi.res_rule(cvf) # the reservation wage
-
-# plot the reservation wage
-fig, ax = plt.subplots(figsize=(9,7))
-ax.plot(jssv_vfi.grid_points, res_wage_vfi, linewidth=2, color='b')
-
-# ax.set_xlim(0, 10)
-# ax.set_ylim(0, 6)
-
-ax.set_xlabel('$theta$', fontsize=25)
-ax.set_ylabel('wage', fontsize=14)
-
-plt.show()
-
-"""

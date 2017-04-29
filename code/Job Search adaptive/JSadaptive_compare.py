@@ -11,8 +11,8 @@ import time
 
 class Job_Search_adaptive(object):
 	"""
-	A class to store a given parameterization of the generalized
-	job search model.
+	A class to store a given parameterization of the adaptive
+	job search model. 
 
 	The value function:
 	v^*(w,mu,gam) = max{ u(w)/(1 - beta), 
@@ -62,8 +62,7 @@ class Job_Search_adaptive(object):
 	mc_size : scalar(int), optional(default=10000)
 		      The number of Monte Carlo samples
 	"""
-	def __init__(self, beta=0.95, c0_tilde=0.6,
-		         gam_eps=1., sig=4.0, 
+	def __init__(self, beta=.95, c0_tilde=.6, gam_eps=1., sig=4., 
 		         mu_min=-10., mu_max=10., mu_size=200,
 		         gam_min= 1e-4, gam_max=10., gam_size=100,
 		         w_min=1e-4, w_max=10., w_size=50,
@@ -373,8 +372,6 @@ for i, sigm in enumerate(sig_vals):
 
 time_cvi = np.mean(time_taken)
 
-
-# =============== Computation Time : CVI ================= #
 print ("")
 print ("----------------------------------------------")
 print ("")
@@ -386,29 +383,8 @@ print ("----------------------------------------------")
 
 
 
-
-
 """
-# This block is used to compare the computation time 
-# of CVI and VFI. Do not run this block with other ones 
-# in one simulation, as there are overlapping variable names.
-
-# ============== Computation Time : CVI ================= #
-print ("")
-print ("CVI in progress")
-
-start_cvi = time.time()
-
-jsa = Job_Search_adaptive()
-
-# compute the continuation value via CVI
-psi_0 = np.ones(len(jsa.grid_points))
-psi_star = jsa.compute_fixed_point(jsa.cval_operator, psi_0)
-
-end_cvi = time.time()
-time_cvi = end_cvi - start_cvi 
-
-
+# Uncomment this block to calculate the time of VFI
 
 # ============== Computation Time : VFI ================= #
 print ("")
@@ -427,13 +403,11 @@ end_vfi = time.time()
 time_vfi = end_vfi - start_vfi
 
 
-# ========== Computation Time : CVI v.s. VFI ============ #
 print ("")
 print ("----------------------------------------------")
 print ("")
 print ("Computation time: ")
 print ("")
-print ("CVI : ", format(time_cvi, '.5g'), "seconds")
 print ("VFI : ", 
 	      int(time_vfi / 3600.), "hours", 
 	      format((time_vfi/3600.- int(time_vfi/3600.))* 60, 
@@ -441,95 +415,3 @@ print ("VFI : ",
 print ("")
 print ("----------------------------------------------")
 """
-
-
-
-
-"""
-# This block is used to compare the graph plotted via CVI
-# and VFI. Do not run this block with other ones in one 
-# simulation, as there are overlapping variable names.
-
-# ================== Plotting via CVI ==================== #
-
-# the reservation wage
-res_rule = jsa.res_rule_func(psi_star)
-# the reservation utility 
-res_util = jsa.res_utility(psi_star) 
-
-psi_star_plt = psi_star.reshape((jsa.mu_size, jsa.gam_size))
-res_rule_plt = res_rule.reshape((jsa.mu_size, jsa.gam_size))
-res_util_plt = res_util.reshape((jsa.mu_size, jsa.gam_size))
-
-# Plot the figure on the important part of the grid range
-mu_mesh, gam_mesh = jsa.mu_mesh, jsa.gam_mesh
-
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				res_rule_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('wage', fontsize=14)
-#ax.set_zlabel('Reservation utility', fontsize=14)
-
-#ax.set_xlim((-3, 3))
-#ax.set_ylim((0, 10))
-ax.set_zlim((1.08, 1.65))
-
-plt.show()
-
-
-# ================== Plotting via VFI ==================== #
-
-cvf = jsa_vfi.compute_cvf(v_star) # CVF
-res_wage = jsa_vfi.res_rule_func(cvf) # reservation wage
-
-cvf_plt = cvf.reshape((jsa_vfi.mu_size, jsa_vfi.gam_size))
-res_wage_plt = res_wage.reshape((jsa_vfi.mu_size, 
-	                             jsa_vfi.gam_size))
-
-mu_mesh, gam_mesh = jsa_vfi.mu_mesh, jsa_vfi.gam_mesh
-
-# plot the continuation value
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				cvf_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('continuation value', fontsize=14)
-#ax.set_zlabel('wage', fontsize=14)
-
-#ax.set_xlim((-3, 3))
-#ax.set_ylim((0, 10))
-#ax.set_zlim((1.08, 1.65))
-
-plt.show()
-
-# plot the reservation wage
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				res_wage.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-#ax.set_zlabel('reservation wage', fontsize=14)
-ax.set_zlabel('wage', fontsize=14)
-
-#ax.set_xlim((-3, 3))
-#ax.set_ylim((0, 10))
-#ax.set_zlim((1.08, 1.65))
-
-plt.show()
-"""
-

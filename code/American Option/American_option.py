@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 
 
 class American_Option(object):
+	"""
+	The American Option.
+	"""
 
 	def __init__(self, gam=.04, K=20., rho=.6, b=-.5, sigma=.5,
 	             z_min=-10., z_max=10., grid_size=200,
@@ -107,12 +110,12 @@ r = ao.r(ao.grid_points)
 # the value function 
 v_star = npmax(ao.r(ao.grid_points), psi_star)
 
+
 fig, ax = plt.subplots(figsize=(9,7))
 ax.plot(ao.grid_points, psi_star, '--', color='red',
 	    linewidth=4, label='CVF')
 ax.plot(ao.grid_points, v_star, color='blue',
 	    linewidth=3, label='VF')
-
 #ax.plot(ao.grid_points, r, label='exit payoff',
 #	    color='green')
 
@@ -141,12 +144,12 @@ r = ao.r(ao.grid_points)
 # the value function 
 v_star = npmax(ao.r(ao.grid_points), psi_star)
 
+
 fig, ax = plt.subplots(figsize=(9,7))
 ax.plot(ao.grid_points, psi_star, '--', color='red',
 	    linewidth=4, label='CVF')
 ax.plot(ao.grid_points, v_star, color='blue',
 	    linewidth=3, label='VF')
-
 #ax.plot(ao.grid_points, r, label='exit payoff',
 #	    color='green')
 
@@ -160,8 +163,4 @@ ax.set_title('$\\rho$ = {}'.format(ao.rho), fontsize=24)
 
 #ax.legend(loc='upper left',fontsize=24)
 
-
 plt.show()
-
-
-

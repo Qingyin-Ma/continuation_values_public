@@ -81,10 +81,10 @@ class Firm_Entry(object):
 		      The number of Monte Carlo samples 
 	"""
 
-	def __init__(self, beta=0.95, a=0.2,
-		         mu_min=-2., mu_max=10., mu_size=200,
+	def __init__(self, beta=.95, a=.2,
+		         mu_min=-2., mu_max=10., mu_size=100,
 		         gam_min=1e-4, gam_max=10., gam_size=100,
-		         mu_f=0., gam_f=.01, gam_x=0.1, gam_y=0.05,
+		         mu_f=0., gam_f=.01, gam_x=.1, gam_y=.05,
 		         mc_size=1000):
 
 		self.beta, self.a = beta, a
@@ -232,56 +232,13 @@ class Firm_Entry(object):
 		return part_2 - psi
 
 
-# This block should be separated from other ones
-
-# ============== Computation Time : CVI ================= #
-print ("")
-print ("CVI in progress")
-
-loop = 1 # number of simulations conducted
-time_taken = np.empty(loop) # store the time used for each simulation  
-
-for i in range(loop):
-	start_cvi = time.time() # starting time of iteration i
-
-	# computing the continuation value via CVI
-	fe = Firm_Entry()
-	psi_0 = np.ones(len(fe.grid_points))
-	psi_star = fe.compute_fixed_point(fe.cvals_operator, psi_0, \
-		                              verbose=0)
-
-	# calculate the time taken for iteration i
-	time_taken[i] = time.time() - start_cvi
-
-	print ("Loop ", i+1, " finished... ", loop-i-1, " remaining...")
-
-time_cvi = np.mean(time_taken)
-
-
-# =============== Computation Time : CVI ================= #
-print ("")
-print ("----------------------------------------------")
-print ("")
-print ("Average computation time: ")
-print ("")
-print ("CVI : ", format(time_cvi, '.5g'), "seconds")
-print ("")
-print ("----------------------------------------------")
-
-
-
-
-
-"""
-# This block is the standard solution of the firm entry 
-# problem. This is to be combined with the next block.
 
 fe = Firm_Entry()
 
 # compute fixed point via compute_fixed_point
 psi_0 = np.ones(len(fe.grid_points))
 psi_star = fe.compute_fixed_point(fe.cvals_operator, psi_0)
-"""
+
 
 """
 # compute fixed point without using compute_fixed_point
@@ -290,12 +247,6 @@ for i in range(20):
 	psi_star = fe.cvals_operator(psi_star)
 	print ("Iteration ", i+1, "completed ...")
 """
-
-
-"""
-# This block is used to plot the graph of the continuation 
-# value, reservation cost, and perceived probability of 
-# investment. 
 
 
 # compute the reservation cost
@@ -312,6 +263,8 @@ prob_inv_plt = prob_inv.reshape((fe.mu_size, fe.gam_size))
 
 mu_mesh, gam_mesh = fe.mu_mesh, fe.gam_mesh
 
+
+# plot figure 3 of the main paper, i.e.,
 # plot the perceived probability of investment 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_subplot(111, projection='3d')
@@ -325,7 +278,6 @@ ax.tick_params(labelsize=20)
 ax.set_xlabel('$\mu$', fontsize=20, labelpad=10)
 ax.set_ylabel('$\gamma$', fontsize=20, labelpad=10)
 ax.set_zlabel('probability', fontsize=20, labelpad=10)
-
 
 # plot the reservation cost
 fig = plt.figure(figsize=(8, 6))
@@ -351,10 +303,4 @@ ax.set_xlabel('$\mu$', fontsize=20, labelpad=10)
 ax.set_ylabel('$\gamma$', fontsize=20, labelpad=10)
 ax.set_zlabel('continuation value', fontsize=20, labelpad=10)
 
-
 plt.show()
-
-"""
-
-
-

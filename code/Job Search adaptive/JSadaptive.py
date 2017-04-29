@@ -56,8 +56,7 @@ class Job_Search_adaptive(object):
 	mc_size : scalar(int), optional(default=10000)
 		      The number of Monte Carlo samples
 	"""
-	def __init__(self, beta=0.95, c0_tilde=0.6,
-		         gam_eps=1., sig=4.0, 
+	def __init__(self, beta=.95, c0_tilde=.6, gam_eps=1., sig=4., 
 		         mu_min=-10., mu_max=20., mu_size=200,
 		         gam_min= 1e-3, gam_max=10., gam_size=100,
 		         mc_size=1000):
@@ -226,7 +225,7 @@ class Job_Search_adaptive(object):
 
 
 
-# =================== plot 4 figures ===================== #
+# =============== Plot figure 2 of the main paper =============== #
 # plot against 4 different sig values
 
 sig_selections = [3., 4., 5., 6.]
@@ -280,8 +279,7 @@ plt.show()
 
 
 """
-# =================== plot 4 figures ===================== #
-# plot against 4 different gam_eps values
+# =================== plot against gam_eps ===================== #
 
 gam_eps_selections = [0.1, 0.5, 1., 1.5]
 
@@ -331,53 +329,3 @@ for i, y in enumerate(gam_eps_selections):
 
 plt.show()
 """
-
-
-"""
-# =================== plot one figure ===================== #
-
-jsa = Job_Search_adaptive()
-psi_0 = np.ones(len(jsa.grid_points))
-psi_star = jsa.compute_fixed_point(jsa.cval_operator, psi_0)
-res_rule = jsa.res_rule_func(psi_star)
-res_util = jsa.res_utility(psi_star)
-
-res_rule_plt = res_rule.reshape((jsa.mu_size, jsa.gam_size))
-res_util_plt = res_util.reshape((jsa.mu_size, jsa.gam_size))
-
-# Plot the figure on the important part of the grid range
-mu_mesh, gam_mesh = jsa.mu_mesh, jsa.gam_mesh
-
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				res_rule_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('wage', fontsize=14)
-#ax.set_zlabel('Reservation utility', fontsize=14)
-
-#ax.set_xlim((-3, 3))
-#ax.set_ylim((0, 10))
-ax.set_zlim((1.08, 1.65))
-
-plt.show()
-
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-

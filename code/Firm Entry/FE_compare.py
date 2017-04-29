@@ -80,11 +80,11 @@ class Firm_Entry(object):
 		      The number of Monte Carlo samples 
 	"""
 
-	def __init__(self, beta=0.95, a=0.2,
-		         mu_min=-2., mu_max=10., mu_size=10,
-		         gam_min=1e-4, gam_max=1., gam_size=10,
+	def __init__(self, beta=.95, a=.2,
+		         mu_min=-2., mu_max=10., mu_size=100,
+		         gam_min=1e-4, gam_max=1., gam_size=100,
 		         f_min=1e-4, f_max=1., f_size=10,
-		         mu_f=0., gam_f=.01, gam_x=0.1, gam_y=0.05,
+		         mu_f=0., gam_f=.01, gam_x=.1, gam_y=.05,
 		         mc_size=1000):
 
 		self.beta, self.a = beta, a
@@ -356,23 +356,45 @@ class Firm_Entry(object):
 
 
 
-# ================= Computation time: CVI ================= #
+
+# ============== Computation Time : CVI ================= #
+print ("")
+print ("CVI in progress")
+
+loop = 5 # number of simulations conducted
+time_taken = np.empty(loop) # store the time used for each simulation  
+
+for i in range(loop):
+	start_cvi = time.time() # starting time of iteration i
+
+	# computing the continuation value via CVI
+	fe = Firm_Entry()
+	psi_0 = np.ones(len(fe.grid_points))
+	psi_star = fe.compute_fixed_point(fe.cvals_operator, psi_0, \
+		                              verbose=0)
+
+	# calculate the time taken for iteration i
+	time_taken[i] = time.time() - start_cvi
+
+	print ("Loop ", i+1, " finished... ", loop-i-1, " remaining...")
+
+time_cvi = np.mean(time_taken)
+
 
 print ("")
-print ("CVI in progress ...")
-
-start_cvi = time.time()
-
-fe = Firm_Entry()
-
-# compute fixed point via compute_fixed_point
-psi_0 = np.ones(len(fe.grid_points))
-psi_star = fe.compute_fixed_point(fe.cvals_operator, psi_0)
-
-end_cvi = time.time()
-time_cvi = end_cvi - start_cvi 
+print ("----------------------------------------------")
+print ("")
+print ("Average computation time: ")
+print ("")
+print ("CVI : ", format(time_cvi, '.5g'), "seconds")
+print ("")
+print ("----------------------------------------------")
 
 
+
+
+"""
+#Uncomment this block to calculate the computation time of VFI
 
 # ================= Computation time: VFI ================= #
 
@@ -387,19 +409,15 @@ fe_vfi = Firm_Entry()
 v0 = np.ones(len(fe_vfi.grid_points_vfi))
 v_star = fe_vfi.compute_fixed_point(fe.Bellman_operaotr, v0)
 
-end_vfi = time.time()
-time_vfi = end_vfi - start_vfi
+# calculate the time taken for VFI
+time_vfi = time.time() - start_vfi
 
-
-
-# ========== Computation Time : CVI v.s. VFI ============ #
 
 print ("")
 print ("----------------------------------------------")
 print ("")
 print ("Computation time: ")
 print ("")
-print ("CVI : ", format(time_cvi, '.5g'), "seconds")
 print ("VFI : ", 
 	      int(time_vfi / 3600.), "hours", 
 	      format((time_vfi/3600.- int(time_vfi/3600.))* 60, 
@@ -407,129 +425,4 @@ print ("VFI : ",
 print ("")
 print ("----------------------------------------------")
 
-
-
-
-
-# ================== Plot results: VFI ==================== #
-
-# compute the continuation value
-cvf = fe_vfi.compute_cvf(v_star)
-# compute the reservation cost
-res_cost_vfi = fe_vfi.res_rule(cvf)
-# compute the probability of investment
-prob_inv_vfi = lognorm.cdf(res_cost_vfi, 
-	                       s=np.sqrt(fe_vfi.gam_f),
-	                       scale=np.exp(fe_vfi.mu_f))
-
-
-cvf_plt = cvf.reshape((fe_vfi.mu_size, fe_vfi.gam_size))
-res_cost_vfi_plt = res_cost_vfi.reshape((fe_vfi.mu_size,
-	                                     fe_vfi.gam_size))
-prob_inv_vfi_plt = prob_inv_vfi.reshape((fe_vfi.mu_size,
-	                                     fe_vfi.gam_size))
-
-
-mu_mesh, gam_mesh = fe_vfi.mu_mesh, fe_vfi.gam_mesh
-
-# plot the perceived probability of investment 
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				prob_inv_vfi_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('probability', fontsize=14)
-
 """
-# plot the reservation cost
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				res_cost_vfi_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('cost', fontsize=14)
-
-# plot the continuation value
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				cvf_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('continuation value', fontsize=14)
-"""
-
-
-
-
-
-# ================== Plot results: CVI ==================== #
-
-# compute the reservation cost
-res_cost = fe.res_rule(psi_star)
-# compute the probability of investment
-prob_inv = lognorm.cdf(res_cost, s=np.sqrt(fe.gam_f),
-	                   scale=np.exp(fe.mu_f))
-
-
-psi_star_plt = psi_star.reshape((fe.mu_size, fe.gam_size))
-res_cost_plt = res_cost.reshape((fe.mu_size, fe.gam_size))
-prob_inv_plt = prob_inv.reshape((fe.mu_size, fe.gam_size))
-
-
-mu_mesh, gam_mesh = fe.mu_mesh, fe.gam_mesh
-
-
-# plot the perceived probability of investment 
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				prob_inv_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('probability', fontsize=14)
-
-"""
-# plot the reservation cost
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				res_cost_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('cost', fontsize=14)
-
-# plot the continuation value
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(mu_mesh, gam_mesh, 
-				psi_star_plt.T,
-				rstride=2, cstride=3, cmap=cm.jet,
-				alpha=0.5, linewidth=0.25)
-
-ax.set_xlabel('$\mu$', fontsize=15)
-ax.set_ylabel('$\gamma$', fontsize=15)
-ax.set_zlabel('continuation value', fontsize=14)
-"""
-
-plt.show()
-
-
-
