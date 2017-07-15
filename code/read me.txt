@@ -1,23 +1,11 @@
-Descriptions of the folders and files inside
+Description of the files: The code is written in both Python and Julia
 
-(1) Job Search adaptive : Section 5.1 and examples 2.2, 3.2 and 3.7.
+In each of the two folders,
 
-    JSadaptive.py : plots figure 2 of the paper.
-    JSadaptive_compare.py : compares CVI and VFI.
+1. js_sv : Search with Permanent and Transitory Components. 
+           See section 5.1 of the paper.
+           The code replicates the result of Table 2-3. 
 
-
-(2) Firm Entry : Section 5.2
-
-    Firm_Entry.py : plots figure 3 of the paper.
-    FE_compare.py : compares CVI and VFI.
-
-
-(3) Job Search SV : Section 5.3
-
-    JSSV.py : plots figure 4 of the paper.
-    JSSV_compare.py : compares CVI and VFI, provides table 1 of the main paper.
-
-
-(4) American Option : Examples 2.3, 3.3 and 3.9. 
-
-    American_Option.py : plots figure 1 of the paper.
+2. js_learning : Search with learning. 
+                 See section 5.2 of the paper.
+                 The code replicates the result of Table 4-5. 

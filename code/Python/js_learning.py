@@ -11,8 +11,8 @@ import time
 
 class Job_Search_adaptive(object):
 	"""
-	A class to store a given parameterization of the adaptive
-	job search model. 
+	A class to store a given parameterization of the generalized
+	job search model.
 
 	The value function:
 	v^*(w,mu,gam) = max{ u(w)/(1 - beta), 
@@ -62,7 +62,8 @@ class Job_Search_adaptive(object):
 	mc_size : scalar(int), optional(default=10000)
 		      The number of Monte Carlo samples
 	"""
-	def __init__(self, beta=.95, c0_tilde=.6, gam_eps=1., sig=4., 
+	def __init__(self, beta=0.95, c0_tilde=0.6,
+		         gam_eps=1., sig=4.0, 
 		         mu_min=-10., mu_max=10., mu_size=200,
 		         gam_min= 1e-4, gam_max=10., gam_size=100,
 		         w_min=1e-4, w_max=10., w_size=50,
@@ -108,10 +109,14 @@ class Job_Search_adaptive(object):
 		The (CRRA) utility function.
 		"""
 		sig = self.sig
+		"""
 		if sig == 1.:
 			uw = np.log(x)
 		else:
 			uw = x**(1. - sig) / (1. - sig)
+		"""
+		#uw = np.log(x)
+		uw = x**(1. - sig) / (1. - sig)
 		return uw
 
 
@@ -121,10 +126,14 @@ class Job_Search_adaptive(object):
 		r(w) = u(w) / (1 - beta).
 		"""
 		beta, sig = self.beta, self.sig
+		"""
 		if sig == 1.:
 			rw = np.log(x) / (1. - beta)
 		else:
 			rw = x**(1. - sig) / ((1. - sig)*(1. - beta))
+		"""
+		#rw = np.log(x) / (1. - beta)
+		rw = x**(1. - sig) / ((1. - sig)*(1. - beta))
 		return rw
 
 
@@ -153,6 +162,8 @@ class Job_Search_adaptive(object):
 
 		N = len(v)
 		new_v = np.empty(N)
+		# the flow continuation payoff
+		c0 = self.util_func(c0_tilde)
 
 		for i in range(N):
 			w, mu, gam = grid_points_vfi[i, :]
@@ -169,8 +180,6 @@ class Job_Search_adaptive(object):
 
 			# MC samples for v_f(w',mu',gam')
 			integrand = v_f(w_prime, mu_prime, gam_prime)
-			# the flow continuation payoff
-			c0 = self.util_func(c0_tilde)
 			# the continuation value
 			cvf = c0 + beta* np.mean(integrand)
 			# the exit payoff 
@@ -180,54 +189,6 @@ class Job_Search_adaptive(object):
 
 		return new_v
 
-
-	def compute_cvf(self, v):
-		"""
-		Compute the continuation value based on 
-		the fixed point of the Bellman operator.
-		"""
-		beta, c0_tilde = self.beta, self.c0_tilde
-		gam_eps = self.gam_eps
-		w_min, w_max = self.w_min, self.w_max
-		mu_min, mu_max = self.mu_min, self.mu_max
-		gam_min, gam_max = self.gam_min, self.gam_max
-		grid_points = self.grid_points
-		grid_points_vfi = self.grid_points_vfi
-		mc_size, draws = self.mc_size, self.draws
-
-		v_interp = LinearNDInterpolator(grid_points_vfi, v)
-
-		def v_f(x, y, z):
-			"""
-			Interpolate but extrapolate using the nearest value
-			on the grid.
-			"""
-			x = npmin(npmax(x, w_min), w_max)
-			y = npmin(npmax(y, mu_min), mu_max)
-			z = npmin(npmax(z, gam_min), gam_max)
-			return v_interp(x, y, z)
-
-		N = len(grid_points)
-		cvf = np.empty(N)
-
-		for i in range(N):
-			mu, gam = grid_points[i, :]
-			# Bayesian updating of gam. "gam_prime" is a scalar.
-			gam_prime = 1. / (1. / gam + 1. / gam_eps)
-			# MC sampling : w'
-			lnw_prime = mu + np.sqrt(gam + gam_eps) * draws
-			w_prime = np.exp(lnw_prime)
-			# MC sampling : mu'
-			mu_prime = gam_prime * (mu/gam + lnw_prime/gam_eps)
-
-			# MC sampling : v(w', mu', gam')
-			integrand = v_f(w_prime, mu_prime, gam_prime)
-			# the flow continuation payoff
-			c0 = self.util_func(c0_tilde)
-			# the continuation value
-			cvf[i] = c0 + beta * np.mean(integrand)
-
-		return cvf
 
 
 	def cval_operator(self, psi):
@@ -276,6 +237,9 @@ class Job_Search_adaptive(object):
 
 		N = len(psi)
 		new_psi = np.empty(N)
+		# c0 = u(c0_tilde): write the unmemployment
+		# compensation in the utility form
+		c0 = self.util_func(self.c0_tilde) 
 
 		for i in range(N):
 			mu, gam = self.grid_points[i,:]
@@ -295,9 +259,6 @@ class Job_Search_adaptive(object):
 			integrand_2 = psi_f(gam_prime * np.ones(mc_size),
 				                mu_prime)
 			integrand = npmax(integrand_1, integrand_2)	
-			# c0 = u(c0_tilde): write the unmemployment
-			# compensation in the utility form
-			c0 = self.util_func(self.c0_tilde) 
 			new_psi[i] = c0 + beta * np.mean(integrand) 
 
 		return new_psi
@@ -323,95 +284,259 @@ class Job_Search_adaptive(object):
 	    return psi
 
 
-	def res_rule_func(self, y):
-		"""
-		Recover the reservation rule based on the 
-		continuation value function.
-		"""
-		sig, beta = self.sig, self.beta
 
-		if sig == 1.:
-			res_rule = np.exp(y* (1. - beta))
-		else:
-			base = (y * (1. - beta)* (1. - sig))
-			res_rule = base**(1. / (1. - sig))
+# =================== Different grid sizes ======================= #
 
-		return res_rule
-
-
-	def res_utility(self, y):
-		"""
-		Recover the reservation utility based on the
-		continuation value function.
-		"""
-		return y * (1 - self.beta)
-
-
-
-
-# ============== Computation Time : CVI ================= #
+# =================== Computation Time : CVI ===================== #
 print ("")
-print ("CVI in progress")
+print ("CVI in progress ... ")
 
-sig_vals = [3., 4., 5., 6.]
-time_taken = np.empty(4) 
+#mu_list_cvi = [20, 50, 50, 100, 200]
+#gam_list_cvi = [20, 50, 50, 100, 200]
 
-for i, sigm in enumerate(sig_vals):
-	start_cvi = time.time() # starting time of iteration i
+mu_list_cvi = [100]
+gam_list_cvi = [100]
 
-	# computing the continuation value via CVI
-	jsa = Job_Search_adaptive(sig=sigm)
-	psi_0 = np.ones(len(jsa.grid_points))
-	psi_star = jsa.compute_fixed_point(jsa.cval_operator, psi_0, \
-		                               verbose=0)
+loops_cvi = 50
+time_cvi = np.empty((loops_cvi, len(mu_list_cvi)))
 
-	# calculate the time taken for iteration i
-	time_taken[i] = time.time() - start_cvi
+for i in range(len(mu_list_cvi)):  
+	# compute the continuation value via CVI
+	jsa = Job_Search_adaptive(sig=3., mu_size=mu_list_cvi[i], 
+		                      gam_size=gam_list_cvi[i])
+	psi_0 = np.ones(len(jsa.grid_points)) # initial guess
+    
+    # iterate the Jovanovic operator "loops" times
+	for j in range(loops_cvi):
+		start_time_ji = time.time()
+		psi_new = jsa.cval_operator(psi_0)
+		psi_0 = psi_new
+		time_cvi[j,i] = time.time() - start_time_ji
+		print ("Loop ", j+1, " finished ...")
 
-	print ("Loop ", i+1, " finished... ", 4-i-1, " remaining...")
+	#print ("Loop ", i+1, " finished... ", len(mu_list_cvi)-i-1, " remaining...")
 
-time_cvi = np.mean(time_taken)
+meantime_cvi = np.mean(time_cvi, 1) # a vector of size (loops * 1)
 
-print ("")
-print ("----------------------------------------------")
-print ("")
-print ("Average computation time: ")
-print ("")
-print ("CVI : ", format(time_cvi, '.5g'), "seconds")
+# some key loops 
+key_loops_cvi = [10, 20, 50]
+# store the time taken at the selected key loops
+time_cvi_keyloops = np.empty((len(key_loops_cvi), len(mu_list_cvi)))
+
+# calculate the time taken at the selected key loops
+for i in range(len(mu_list_cvi)):
+	for j in range(len(key_loops_cvi)):
+		time_cvi_keyloops[j,i] = np.sum(time_cvi[:key_loops_cvi[j], i])
+
+# calculate the mean time taken at the selected key loops
+meantime_cvi_keyloops = np.mean(time_cvi_keyloops, 1)
+
+
+# =============== Computation Time : CVI ================= #
 print ("")
 print ("----------------------------------------------")
+print ("")
+print ("CVI : time taken under different grid sizes")
+print ("")
+print ("Key parameters : sig =", sig)
+print ("")
+print ("mu size : ", mu_list_cvi)
+print ("")
+print ("gam size : ", gam_list_cvi)
+print ("")
+print ("Key loops : ", key_loops_cvi)
+print ("")
+print ("CVI : ", time_cvi_keyloops)
+print ("")
+print ("Average time CVI : ", meantime_cvi_keyloops)
+print ("")
+print ("----------------------------------------------")
+
 
 
 
 """
-# Uncomment this block to calculate the time of VFI
-
 # ============== Computation Time : VFI ================= #
 print ("")
-print ("VFI in progress")
+print ("VFI in progress ... ")
 
-start_vfi = time.time()
+#w_list_vfi = [20, 20, 50, 50, 100]
+#mu_list_vfi = [20, 50, 50, 100, 200]
+#gam_list_vfi = [20, 50, 50, 100, 200]
 
-jsa_vfi = Job_Search_adaptive()
+w_list_vfi = [2, 2, 5, 5, 2]
+mu_list_vfi = [2, 5, 5, 10, 2]
+gam_list_vfi = [2, 5, 5, 10, 2]
 
-# compute the value function via VFI
-v_0 = np.ones(len(jsa_vfi.grid_points_vfi))
-v_star = jsa_vfi.compute_fixed_point(jsa_vfi.Bellman_operator,
-                                     v_0)
+loops_vfi = 3
+time_vfi = np.empty((loops_vfi, len(mu_list_vfi)))
 
-end_vfi = time.time()
-time_vfi = end_vfi - start_vfi
+for i in range(len(mu_list_vfi)): 
+	# compute the value function via VFI
+	jsa = Job_Search_adaptive(sig=3., mu_size=mu_list_vfi[i], 
+		        gam_size=gam_list_vfi[i], w_size=w_list_vfi[i])
+	v_0 = np.ones(len(jsa.grid_points_vfi)) # initial guess
+    
+    # iterate the Bellman operator "loops_vfi" times
+	for j in range(loops_vfi):
+		start_time_ji = time.time()
+		v_new = jsa.Bellman_operator(v_0)
+		v_0 = v_new
+		time_vfi[j,i] = time.time() - start_time_ji
 
+	print ("Loop ", i+1, " finished... ", len(mu_list_vfi)-i-1, " remaining...")
 
+meantime_vfi = np.mean(time_vfi, 1) # a vector of size (loops_vfi *1)
+
+# some key loops 
+key_loops_vfi = [1, 2, 3]
+# store the time taken at the selected key loops
+time_vfi_keyloops = np.empty((len(key_loops_vfi), len(mu_list_vfi)))
+
+# calculate the time taken at the selected key loops
+for i in range(len(mu_list_vfi)):
+	for j in range(len(key_loops_vfi)):
+		time_vfi_keyloops[j,i] = np.sum(time_vfi[:key_loops_vfi[j], i])
+
+# calculate the mean time taken at the selected key loops
+meantime_vfi_keyloops = np.mean(time_vfi_keyloops, 1)
+
+# =============== Computation Time : VFI ================= #
 print ("")
 print ("----------------------------------------------")
 print ("")
-print ("Computation time: ")
+print ("VFI : time taken under different grid sizes")
 print ("")
-print ("VFI : ", 
-	      int(time_vfi / 3600.), "hours", 
-	      format((time_vfi/3600.- int(time_vfi/3600.))* 60, 
-	      	     '.5g'), "minutes")
+print ("w grid size : ", w_list_vfi)
+print ("")
+print ("mu grid size : ", mu_list_vfi)
+print ("")
+print ("gam grid size : ", gam_list_vfi)
+print ("")
+print ("Key loops : ", key_loops_vfi)
+print ("")
+print ("VFI : ", time_vfi_keyloops)
+#print ("VFI : ", format(time_vfi_keyloops, '.5g'), "seconds")
+print ("")
+print ("Average time VFI: ", meantime_vfi_keyloops)
+print ("")
+print ("----------------------------------------------")
+"""
+
+
+
+
+
+
+# ================= Different parameter values =================== #
+
+"""
+# ============== Computation Time : CVI ================= #
+print ("")
+print ("CVI in progress ...")
+
+sig_vals = [2., 3., 4., 5., 6.]
+loops_cvi = 50
+time_cvi = np.empty((loops_cvi, len(sig_vals)))
+
+for i, sigm in enumerate(sig_vals):  
+	# compute the continuation value via CVI
+	jsa = Job_Search_adaptive(sig=sigm, mu_size=200, gam_size=200)
+	psi_0 = np.ones(len(jsa.grid_points)) # initial guess
+    
+    # iterate the Jovanovic operator "loops" times
+	for j in range(loops_cvi):
+		start_time_ji = time.time()
+		psi_new = jsa.cval_operator(psi_0)
+		psi_0 = psi_new
+		time_cvi[j,i] = time.time() - start_time_ji
+
+	print ("Loop ", i+1, " finished... ", len(sig_vals)-i-1, " remaining...")
+
+meantime_cvi = np.mean(time_cvi, 1) # a vector of size (loops * 1)
+
+# some key loops 
+key_loops_cvi = [10, 20, 50]
+# store the time taken at the selected key loops
+time_cvi_keyloops = np.empty((len(key_loops_cvi), len(sig_vals)))
+
+# calculate the time taken at the selected key loops
+for i in range(len(sig_vals)):
+	for j in range(len(key_loops_cvi)):
+		time_cvi_keyloops[j,i] = np.sum(time_cvi[:key_loops_cvi[j], i])
+
+# calculate the mean time taken at the selected key loops
+meantime_cvi_keyloops = np.mean(time_cvi_keyloops, 1)
+
+
+# =============== Computation Time : CVI ================= #
+print ("")
+print ("----------------------------------------------")
+print ("")
+print ("CVI: different parameter values")
+print ("")
+print ("sig_vals : ", sig_vals)
+print ("")
+print ("Key loops CVI : ", key_loops_cvi)
+print ("")
+print ("Time taken CVI : ", time_cvi_keyloops)
+print ("")
+print ("Average time CVI: ", meantime_cvi_keyloops)
+print ("")
+print ("----------------------------------------------")
+"""
+
+
+
+"""
+# ============== Computation Time : VFI ================= #
+print ("")
+print ("VFI in progress ... ")
+
+sig_vals = [2., 3., 4., 5., 6.]
+loops_vfi = 3
+time_vfi = np.empty((loops_vfi, len(sig_vals)))
+
+for i, sigm in enumerate(sig_vals):  
+	# compute the value function via VFI
+	jsa = Job_Search_adaptive(sig=sigm, mu_size=5, gam_size=5, w_size=5)
+	v_0 = np.ones(len(jsa.grid_points_vfi)) # initial guess
+    
+    # iterate the Bellman operator "loops_vfi" times
+	for j in range(loops_vfi):
+		start_time_ji = time.time()
+		v_new = jsa.Bellman_operator(v_0)
+		v_0 = v_new
+		time_vfi[j,i] = time.time() - start_time_ji
+
+	print ("Loop ", i+1, " finished... ", len(sig_vals)-i-1, " remaining...")
+
+meantime_vfi = np.mean(time_vfi, 1) # a vector of size (loops_vfi *1)
+
+# some key loops 
+key_loops_vfi = [1, 2, 3]
+# store the time taken at the selected key loops
+time_vfi_keyloops = np.empty((len(key_loops_vfi), len(sig_vals)))
+
+# calculate the time taken at the selected key loops
+for i in range(len(sig_vals)):
+	for j in range(len(key_loops_vfi)):
+		time_vfi_keyloops[j,i] = np.sum(time_vfi[:key_loops_vfi[j], i])
+
+# calculate the mean time taken at the selected key loops
+meantime_vfi_keyloops = np.mean(time_vfi_keyloops, 1)
+
+
+# =============== Computation Time : VFI ================= #
+print ("")
+print ("----------------------------------------------")
+print ("")
+print ("")
+print ("sig_vals : ", sig_vals)
+print ("")
+print ("VFI : ", time_vfi_keyloops)
+print ("")
+print ("Average time VFI: ", meantime_vfi_keyloops)
 print ("")
 print ("----------------------------------------------")
 """
